@@ -28,7 +28,7 @@ The pipeline was built on **129,000 balanced reviews** from three complementary 
 
 ```
 .
-├── Readme_project.md                                   # this file
+├── README.md                                            # this file
 ├── Readme_exercise.md                                  # original Ironhack assignment brief
 ├── project_nlp_business_case_automated_customers_reviews_FinalVersion.ipynb   # final pipeline notebook
 ├── Automated_Customer_Reviews_Report_Updated_Clustering_Summarisation.docx    # full technical report
