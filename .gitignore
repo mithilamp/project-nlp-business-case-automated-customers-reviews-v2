@@ -1,4 +1,16 @@
 .DS_Store
 __pycache__/
 .ipynb_checkpoints/
+.gradio/
+
+# Raw/intermediate datasets are large — regenerate via the notebook.
 /**/*.csv
+
+# ...but keep the small, curated deployment artefacts the app needs.
+!/data/app/*.csv
+
+# Fine-tuned model weights exceed GitHub's 100MB file limit and are not tracked.
+# Place them locally under outputs/<model_name>/ to enable live sentiment
+# inference in app.py — without them the app falls back to a rule-based
+# sentiment classifier.
+outputs/

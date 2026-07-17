@@ -34,18 +34,30 @@ The pipeline was built on **129,000 balanced reviews** from three complementary 
 ├── Automated_Customer_Reviews_Report_Updated_Clustering_Summarisation.docx    # full technical report
 ├── Automated_Customer_Reviews_Presentation_FINAL.pptx  # stakeholder presentation
 ├── consumer-reviews-of-amazon-products-metadata.json   # Croissant metadata for the Kaggle dataset
+├── app.py                                               # Gradio dashboard — runnable standalone (see Section 7)
+├── requirements.txt                                     # dependencies for running app.py locally
 ├── EDA/                                                 # exploratory data analysis notebooks + charts
 │   ├── 01_Primary_Dataset_EDA.ipynb
 │   ├── Merged Dataset _ eda.ipynb
 │   ├── eda_amazon_reviews.ipynb
 │   └── eda_outputs/                                     # exported plots (rating/sentiment distributions, wordclouds, etc.)
-└── data/
-    ├── primary/                                         # Datafiniti/Kaggle Amazon reviews (backbone dataset)
-    ├── large/                                            # sampled McAuley-Lab Amazon Reviews 2023
-    └── merged/                                           # cleaned, merged dataset used for modelling
+├── data/
+│   ├── primary/                                         # Datafiniti/Kaggle Amazon reviews (backbone dataset)
+│   ├── large/                                            # sampled McAuley-Lab Amazon Reviews 2023
+│   ├── merged/                                           # cleaned, merged dataset used for modelling
+│   └── app/                                              # pre-exported deployment artefacts consumed by app.py
+│       ├── app_reviews_sample.csv
+│       ├── category_cluster_df.csv
+│       ├── category_cluster_profile_df.csv
+│       └── generated_articles.csv                        # optional — seller-mode article summaries
+└── outputs/                                              # fine-tuned model weights (not tracked — see below)
+    ├── distilbert_sentiment_model/
+    └── roberta_sentiment_model/
 ```
 
-Large CSVs are gitignored; see [Readme_exercise.md](Readme_exercise.md) for original dataset sources.
+Large raw/intermediate CSVs under `data/primary/`, `data/large/` and `data/merged/` are gitignored; see [Readme_exercise.md](Readme_exercise.md) for original dataset sources. The curated `data/app/` artefacts **are** tracked (small, needed to run the app out of the box).
+
+`outputs/` (the fine-tuned DistilBERT and RoBERTa weights) is gitignored — each model's `model.safetensors` exceeds GitHub's 100MB file limit. Without it, `app.py` still runs but falls back to a simple rule-based sentiment classifier for the live "Review Analyzer" tab; every other tab (clustering, category intelligence, product performance) is unaffected since those rely on the pre-exported `data/app/` artefacts, not the live model.
 
 ---
 
@@ -136,7 +148,11 @@ When no recurring theme is supported by the evidence, the system reports "insuff
 
 ## 7. Deployment — Gradio Review Intelligence Dashboard
 
-The dashboard is built with **Gradio Blocks**, launched from Google Colab (mounted to Google Drive) with a public `share=True` link. All heavy computation (training, clustering, summarisation) runs **offline in the notebook** — the app only loads pre-exported artefacts (`data/app/`) plus the fine-tuned DistilBERT model at runtime, keeping the interface fast and its analytical outputs reproducible.
+The dashboard is built with **Gradio Blocks**. All heavy computation (training, clustering, summarisation) runs **offline in the notebook** — the app only loads pre-exported artefacts (`data/app/`) plus the fine-tuned DistilBERT model at runtime, keeping the interface fast and its analytical outputs reproducible.
+
+It can be launched two ways:
+- **Locally** — `python app.py` from the repo root (see [Section 8](#8-how-to-reproduce)), reading `data/app/` and, if present, `outputs/` for live inference.
+- **From Google Colab**, mounted to Google Drive, with a public `share=True` link — this was the original development/demo setup.
 
 **Consumer view:** pick a plain-language product group → get sentiment distribution, average rating, review count, controlled value/concern themes, and representative review excerpts.
 
@@ -146,17 +162,27 @@ The dashboard is built with **Gradio Blocks**, launched from Google Colab (mount
 - **Product Performance** — top/bottom-ranked products with Bayesian smoothing against low-review-count products.
 - **Review Analyzer** — the only live-inference workflow: type a review, get the DistilBERT prediction, class probabilities and confidence.
 
-> Note: the current deployment relies on an ephemeral Colab share link, not a persistent public host (see [Future Work](#9-future-improvements)).
+> Note: there is no persistent public host yet — the Colab route produces an ephemeral share link, and the local route is only reachable on `localhost` unless `share=True` is set in `app.py` (see [Future Work](#9-future-improvements)).
 
 ---
 
 ## 8. How to Reproduce
 
+### 8.1 Quick start — run the dashboard as-is
+
+The repo already ships with the exported deployment artefacts (`data/app/`), so the app runs without touching the notebook:
+
+1. `pip install -r requirements.txt`
+2. *(Optional, for live sentiment inference in the "Review Analyzer" tab)* place the fine-tuned model folders under `outputs/` — `outputs/distilbert_sentiment_model/` and/or `outputs/roberta_sentiment_model/`. These are not tracked in git (see [Section 2](#2-repository-structure)); without them the app falls back to a rule-based classifier for that one tab, everything else works normally.
+3. `python app.py` and open the local URL Gradio prints (add `share=True` inside `app.py` for a public link).
+
+### 8.2 Full reproduction from scratch
+
 1. Open [project_nlp_business_case_automated_customers_reviews_FinalVersion.ipynb](project_nlp_business_case_automated_customers_reviews_FinalVersion.ipynb) in Colab or Jupyter.
 2. Run **Section 1** to install dependencies (`pandas`, `numpy`, `scikit-learn`, `transformers`, `datasets`, `evaluate`, `accelerate`, `sentence-transformers`, `gradio`, `plotly`).
 3. Run sections in order — each is numbered per the in-notebook roadmap (Acquisition → Cleaning → Label Creation → EDA → Balancing → Baseline → Comparison → Evaluation → Clustering → Summarisation → App).
 4. Section 12 exports the deployment artefacts to `data/app/` (review sample, cluster table with PCA coordinates, weighted cluster profiles, validated summaries).
-5. Launch the Gradio app (`app.py`, generated alongside the exported artefacts) with `share=True` for a public link, or run it locally against the same `data/app/` artefacts.
+5. Copy the exported `data/app/` artefacts and trained model folders into the repo, then follow [Section 8.1](#81-quick-start--run-the-dashboard-as-is) to launch.
 
 ---
 
